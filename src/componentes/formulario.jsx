@@ -2,12 +2,7 @@ import { useState } from "react";
 import "./formulario.css";
 
 export default function Formulario() {
-  const [productos, setProductos] = useState({
-    gorra: 0,
-    gafas: 0,
-    medias: 0,
-    auriculares: 0,
-  });
+  const [productos, setProductos] = useState({});
 
   const precios = {
     gorra: 1500,
@@ -19,15 +14,24 @@ export default function Formulario() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     const producto = name.replace("cantidad_", "");
-    setProductos({ ...productos, [producto]: Number(value) });
+
+    if (value === "") {
+      setProductos({ ...productos, [producto]: "" });
+    } else if (Number(value) < 1) {
+      const nuevoEstado = { ...productos };
+      delete nuevoEstado[producto];
+      setProductos(nuevoEstado);
+    } else {
+      setProductos({ ...productos, [producto]: Number(value) });
+    }
   };
 
   const productosSeleccionados = Object.entries(productos).filter(
-    ([key, cantidad]) => cantidad > 0
+    ([_, cantidad]) => Number(cantidad) > 0
   );
 
   const totalCarrito = productosSeleccionados.reduce(
-    (acc, [nombre, cantidad]) => acc + precios[nombre] * cantidad,
+    (acc, [nombre, cantidad]) => acc + precios[nombre] * Number(cantidad),
     0
   );
 
@@ -102,7 +106,6 @@ export default function Formulario() {
 
         <label htmlFor="alergias">
           Alergias (medicamentos, alimentos, etc.):
-
           <input id="alergias" name="alergias" type="text" />
         </label>
 
@@ -142,27 +145,31 @@ export default function Formulario() {
               <input
                 type="checkbox"
                 id={`check_${prod}`}
-                checked={productos[prod] > 0}
-                onChange={(e) =>
-                  setProductos({
-                    ...productos,
-                    [prod]: e.target.checked ? 1 : 0,
-                  })
-                }
+                checked={productos.hasOwnProperty(prod)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setProductos({ ...productos, [prod]: 1 });
+                  } else {
+                    const nuevoEstado = { ...productos };
+                    delete nuevoEstado[prod];
+                    setProductos(nuevoEstado);
+                  }
+                }}
               />
               {prod.charAt(0).toUpperCase() + prod.slice(1)} (${precios[prod]})
             </label>
 
-            {productos[prod] > 0 && (
+            {productos.hasOwnProperty(prod) && (
               <>
                 <label htmlFor={`cantidad_${prod}`}>
                   Cantidad:
                   <input
                     type="number"
                     min="1"
+                    step="1"
                     id={`cantidad_${prod}`}
                     name={`cantidad_${prod}`}
-                    value={productos[prod]}
+                    value={productos[prod] ?? ""}
                     onChange={handleChange}
                     className="producto-cantidad"
                   />
@@ -217,7 +224,7 @@ export default function Formulario() {
         <p>
           <button type="submit">Enviar inscripción</button>
         </p>
-      </form >
+      </form>
     </>
   );
 }
